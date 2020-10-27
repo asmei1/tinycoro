@@ -1,0 +1,2 @@
+project (TinyCoro LANGUAGES CXX)
+add_library(TinyCoro FireAndForget.hpp)
