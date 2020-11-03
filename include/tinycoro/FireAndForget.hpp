@@ -29,7 +29,7 @@ namespace tinycoro
         FireAndForget(FireAndForget&&) = delete;
         FireAndForget& operator=(FireAndForget&&) = delete;
 
-        //Deleted co_await operator
+        // Deleted co_await operator
         auto operator co_await() = delete;
 
         using promise_type = FireAndForgetPromise;
@@ -43,8 +43,7 @@ namespace tinycoro
         }
 
         void return_void() const noexcept
-        {
-        }
+        {}
 
         std::suspend_never initial_suspend() const noexcept
         {
@@ -66,7 +65,8 @@ namespace tinycoro
      * Helper function to execute any coroutine as fire and forget function.
      * It could receive awaitable object or coroutine function.
      */
-    template <typename T> FireAndForget fireAndForget(T t)
+    template <typename T>
+    FireAndForget fireAndForget(T t)
     {
         if constexpr(std::is_invocable_v<T>)
         {
