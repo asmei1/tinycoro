@@ -11,19 +11,18 @@ StaticCoroThreadPool::StaticCoroThreadPool(size_t threadCount)
 {
     for(int i = 0; i < threadCount; ++i)
     {
-        this->threads.emplace_back([&](std::stop_token stopToken) { startWorker(stopToken); });
+        this->workers.emplace_back([&](std::stop_token stopToken) { startWorker(stopToken); });
     }
 }
 
 StaticCoroThreadPool::~StaticCoroThreadPool()
 {
-    for(auto& t : this->threads)
+    for(auto& t : this->workers)
     {
-        std::cout << "Request stop, thread id: " << t.get_id() << std::endl;
         t.request_stop();
     }
 
-    for(auto& t : this->threads)
+    for(auto& t : this->workers)
     {
         t.join();
     }

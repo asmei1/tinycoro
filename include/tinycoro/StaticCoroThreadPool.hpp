@@ -45,16 +45,17 @@ namespace tinycoro
         }
 
         void waitForAllWorkers();
+
     private:
         void startWorker(std::stop_token stopToken);
 
         void planOperationWhenIsSuspended(ThreadPoolOperation* operation);
 
-        std::condition_variable_any operationsCV;
-        std::condition_variable waitForAllWorkersCV;
+        std::vector<std::jthread> workers;
         std::mutex operationsQueueMutex;
+        std::condition_variable waitForAllWorkersCV;
+        std::condition_variable_any operationsCV;
         std::queue<ThreadPoolOperation*> operationsQueue;
-        std::vector<std::jthread> threads;
     };
 
 } // namespace tinycoro
