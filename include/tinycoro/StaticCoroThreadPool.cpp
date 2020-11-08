@@ -30,22 +30,25 @@ StaticCoroThreadPool::~StaticCoroThreadPool()
 
 void StaticCoroThreadPool::startWorker(std::stop_token stopToken)
 {
+    ThreadPoolOperation* op;
     while(!stopToken.stop_requested())
     {
-        std::unique_lock lock(this->operationsQueueMutex);
-        this->operationsCV.wait(lock, stopToken, [&]() { return not this->operationsQueue.empty(); });
-
-        // If thread was stopped, stop worker too
-        if(stopToken.stop_requested())
         {
-            return;
+            std::unique_lock lock(this->operationsQueueMutex);
+            this->operationsCV.wait(lock, stopToken, [&]() { return not this->operationsQueue.empty(); });
+
+            // If thread was stopped, stop worker too
+            if(stopToken.stop_requested())
+            {
+                return;
+            }
+            op = this->operationsQueue.front();
+            this->operationsQueue.pop();
         }
 
         // resume coroutine
-        auto coro = this->operationsQueue.front();
-        this->operationsQueue.pop();
+        op->awaitingCoro.resume();
         this->waitForAllWorkersCV.notify_one();
-        coro->awaitingCoro.resume();
     }
 }
 
@@ -61,6 +64,10 @@ void StaticCoroThreadPool::waitForAllWorkers()
 {
     std::unique_lock lock(this->operationsQueueMutex);
     this->waitForAllWorkersCV.wait(lock, [&]() { return this->operationsQueue.empty(); });
+}
+size_t StaticCoroThreadPool::threadCount() const
+{
+    return this->workers.size();
 }
 
 bool StaticCoroThreadPool::ThreadPoolOperation::await_ready() noexcept

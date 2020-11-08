@@ -44,6 +44,7 @@ namespace tinycoro
             return {this};
         }
 
+        size_t threadCount() const;
         void waitForAllWorkers();
 
     private:
