@@ -23,26 +23,13 @@ namespace tinycoro
         StaticCoroThreadPool(StaticCoroThreadPool&&) = delete;
         StaticCoroThreadPool& operator=(StaticCoroThreadPool&&) = delete;
 
-        struct ThreadPoolOperation
-        {
-        public:
-            ThreadPoolOperation(StaticCoroThreadPool* threadPool) : pool(threadPool)
-            {}
+        struct Scheduler;
+        struct ThreadPoolOperation;
 
-            bool await_ready() noexcept;
-            void await_suspend(std::coroutine_handle<> awaitingCoro);
-            void await_resume() noexcept;
+        Scheduler getScheduler();
 
-        private:
-            friend class StaticCoroThreadPool;
-            std::coroutine_handle<> awaitingCoro;
-            StaticCoroThreadPool* pool;
-        };
-
-        ThreadPoolOperation resumeOnPool()
-        {
-            return {this};
-        }
+        [[nodiscard]]
+        ThreadPoolOperation scheduleOnPool();
 
         size_t threadCount() const;
         void wait();
@@ -59,6 +46,40 @@ namespace tinycoro
         std::queue<ThreadPoolOperation*> operationsQueue;
     };
 
+    struct StaticCoroThreadPool::ThreadPoolOperation
+    {
+    public:
+        ThreadPoolOperation(StaticCoroThreadPool& pool) : pool(pool)
+        {}
+
+        bool await_ready() noexcept;
+        void await_suspend(std::coroutine_handle<> awaitingCoro);
+        void await_resume() noexcept;
+
+    private:
+        friend class StaticCoroThreadPool;
+        std::coroutine_handle<> awaitingCoro;
+        StaticCoroThreadPool& pool;
+    };
+
+    struct StaticCoroThreadPool::Scheduler{
+        Scheduler(StaticCoroThreadPool& pool):
+            pool(pool){}
+
+        [[nodiscard]]
+        StaticCoroThreadPool::ThreadPoolOperation schedule(){
+            return {this->pool};
+        }
+
+    private:
+        StaticCoroThreadPool& pool;
+    };
+
+    StaticCoroThreadPool::ThreadPoolOperation StaticCoroThreadPool::scheduleOnPool()
+    {
+        return {*this};
+    }
+    
 } // namespace tinycoro
 
 #endif // TINYCORO_STATICCOROTHREADPOOL_HPP

@@ -3,7 +3,6 @@
 //
 #include "StaticCoroThreadPool.hpp"
 #include <functional>
-#include <iostream>
 
 using namespace tinycoro;
 
@@ -65,9 +64,15 @@ void StaticCoroThreadPool::wait()
     std::unique_lock lock(this->operationsQueueMutex);
     this->waitForAllWorkersCV.wait(lock, [&]() { return this->operationsQueue.empty(); });
 }
+
 size_t StaticCoroThreadPool::threadCount() const
 {
     return this->workers.size();
+}
+
+StaticCoroThreadPool::Scheduler StaticCoroThreadPool::getScheduler()
+{
+    return StaticCoroThreadPool::Scheduler(*this);
 }
 
 bool StaticCoroThreadPool::ThreadPoolOperation::await_ready() noexcept
@@ -79,7 +84,7 @@ void StaticCoroThreadPool::ThreadPoolOperation::await_suspend(std::coroutine_han
 {
     // Store given coro handle and put operation into
     this->awaitingCoro = awaitingCoro;
-    this->pool->scheduleOpOnPoolWhenIsSuspended(this);
+    this->pool.scheduleOpOnPoolWhenIsSuspended(this);
 }
 
 void StaticCoroThreadPool::ThreadPoolOperation::await_resume() noexcept
