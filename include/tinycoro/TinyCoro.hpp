@@ -6,6 +6,7 @@
 #define TINYCORO_TINYCORO_HPP
 
 #include "Traits.hpp"
+#include "Task.hpp"
 #include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
 

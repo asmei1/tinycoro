@@ -74,7 +74,7 @@ namespace tinycoro
         }
         else
         {
-            co_await t;
+            co_await std::move(t);
         }
     }
 } // namespace tinycoro
