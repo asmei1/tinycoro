@@ -9,6 +9,7 @@
 #include <utility>
 namespace tinycoro
 {
+    template <typename T = void>
     class Task
     {
     public:
@@ -26,18 +27,39 @@ namespace tinycoro
             }
         }
 
+        template<typename U>
         class TaskPromise;
-        using promise_type = TaskPromise;
 
+        using promise_type = TaskPromise<T>;
+        using promise_coro_handle = std::coroutine_handle<promise_type>;
+
+        template <typename U = T>
         class TaskPromise
         {
+            std::exception_ptr exceptionPtr;
+            U value;
+
         public:
-            void return_void() const noexcept
-            {}
+            void return_value(U value)
+            {
+                this->value = value;
+            }
+
+            U& result()
+            {
+                if(exceptionPtr)
+                {
+                    std::rethrow_exception(this->exceptionPtr);
+                }
+
+                return this->value;
+            }
+
             std::suspend_always initial_suspend() const noexcept
             {
                 return {};
             }
+
             auto final_suspend() const noexcept
             {
                 struct FinalAwaiter
@@ -47,12 +69,12 @@ namespace tinycoro
                         return false;
                     }
 
-                    std::coroutine_handle<> await_suspend(std::coroutine_handle<TaskPromise> coroHandle)
+                    std::coroutine_handle<> await_suspend(promise_coro_handle coroHandle)
                     {
                         return coroHandle.promise().continuation;
                     }
 
-                    void await_resume() const noexcept
+                    void await_resume()
                     {}
                 };
 
@@ -66,10 +88,15 @@ namespace tinycoro
 
             Task get_return_object() noexcept
             {
-                return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
+                return Task{promise_coro_handle::from_promise(*this)};
             }
 
-            std::exception_ptr exceptionPtr;
+            void rethrowExceptionIfExists(){
+                if(this->exceptionPtr){
+                    std::rethrow_exception(this->exceptionPtr);
+                }
+            }
+
             std::coroutine_handle<> continuation;
         };
 
@@ -77,7 +104,7 @@ namespace tinycoro
         {
             struct awaiter
             {
-                awaiter(std::coroutine_handle<TaskPromise> coro) : coro(coro)
+                awaiter(promise_coro_handle coro) : coro(coro)
                 {}
                 bool await_ready() const noexcept
                 {
@@ -91,22 +118,86 @@ namespace tinycoro
                     return this->coro;
                 }
 
-                void await_resume() const noexcept
-                {}
+                auto await_resume()
+                {
+                    return this->coro.promise().result();
+                }
 
             private:
-                std::coroutine_handle<TaskPromise> coro;
+                promise_coro_handle coro;
             };
 
             return awaiter{this->coroHandle};
         }
 
-
     private:
-        explicit Task(std::coroutine_handle<TaskPromise> coro) : coroHandle(coro)
+        explicit Task(promise_coro_handle coro) : coroHandle(coro)
         {}
 
-        std::coroutine_handle<TaskPromise> coroHandle;
+        promise_coro_handle coroHandle;
+    };
+
+    template<> template <>
+    class Task<void>::TaskPromise<void>
+    {
+        std::exception_ptr exceptionPtr;
+
+    public:
+        void return_void()
+        {
+        }
+
+        void result()
+        {
+            if(exceptionPtr)
+            {
+                std::rethrow_exception(this->exceptionPtr);
+            }
+        }
+
+        std::suspend_always initial_suspend() const noexcept
+        {
+            return {};
+        }
+
+        auto final_suspend() const noexcept
+        {
+            struct FinalAwaiter
+            {
+                bool await_ready() const noexcept
+                {
+                    return false;
+                }
+
+                std::coroutine_handle<> await_suspend(promise_coro_handle coroHandle)
+                {
+                    return coroHandle.promise().continuation;
+                }
+
+                void await_resume()
+                {}
+            };
+
+            // temporary
+            return FinalAwaiter{};
+        }
+        void unhandled_exception()
+        {
+            this->exceptionPtr = std::current_exception();
+        }
+
+        Task get_return_object() noexcept
+        {
+            return Task{promise_coro_handle::from_promise(*this)};
+        }
+
+        void rethrowExceptionIfExists(){
+            if(this->exceptionPtr){
+                std::rethrow_exception(this->exceptionPtr);
+            }
+        }
+
+        std::coroutine_handle<> continuation;
     };
 
 } // namespace tinycoro
