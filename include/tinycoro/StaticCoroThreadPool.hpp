@@ -23,13 +23,31 @@ namespace tinycoro
         StaticCoroThreadPool(StaticCoroThreadPool&&) = delete;
         StaticCoroThreadPool& operator=(StaticCoroThreadPool&&) = delete;
 
+        struct ThreadPoolOperation
+        {
+        public:
+            ThreadPoolOperation(StaticCoroThreadPool& pool) : pool(pool)
+            {}
+
+            bool await_ready() noexcept;
+            void await_suspend(std::coroutine_handle<> awaitingCoro);
+            void await_resume() noexcept;
+
+        private:
+            friend class StaticCoroThreadPool;
+            std::coroutine_handle<> awaitingCoro;
+            StaticCoroThreadPool& pool;
+        };
+
         struct Scheduler;
-        struct ThreadPoolOperation;
 
         Scheduler getScheduler();
 
         [[nodiscard]]
-        ThreadPoolOperation scheduleOnPool();
+        ThreadPoolOperation scheduleOnPool()
+        {
+            return {*this};
+        }
 
         size_t threadCount() const;
         void wait();
@@ -46,22 +64,6 @@ namespace tinycoro
         std::queue<ThreadPoolOperation*> operationsQueue;
     };
 
-    struct StaticCoroThreadPool::ThreadPoolOperation
-    {
-    public:
-        ThreadPoolOperation(StaticCoroThreadPool& pool) : pool(pool)
-        {}
-
-        bool await_ready() noexcept;
-        void await_suspend(std::coroutine_handle<> awaitingCoro);
-        void await_resume() noexcept;
-
-    private:
-        friend class StaticCoroThreadPool;
-        std::coroutine_handle<> awaitingCoro;
-        StaticCoroThreadPool& pool;
-    };
-
     struct StaticCoroThreadPool::Scheduler{
         Scheduler(StaticCoroThreadPool& pool):
             pool(pool){}
@@ -75,11 +77,6 @@ namespace tinycoro
         StaticCoroThreadPool& pool;
     };
 
-    StaticCoroThreadPool::ThreadPoolOperation StaticCoroThreadPool::scheduleOnPool()
-    {
-        return {*this};
-    }
-    
 } // namespace tinycoro
 
 #endif // TINYCORO_STATICCOROTHREADPOOL_HPP
