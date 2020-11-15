@@ -39,18 +39,18 @@ namespace tinycoro
             StaticCoroThreadPool* pool;
         };
 
-        ThreadPoolOperation resumeOperationOnPool()
+        ThreadPoolOperation resumeOnPool()
         {
             return {this};
         }
 
         size_t threadCount() const;
-        void waitForAllWorkers();
+        void wait();
 
     private:
         void startWorker(std::stop_token stopToken);
 
-        void planOperationWhenIsSuspended(ThreadPoolOperation* operation);
+        void scheduleOpOnPoolWhenIsSuspended(ThreadPoolOperation* operation);
 
         std::vector<std::jthread> workers;
         std::mutex operationsQueueMutex;

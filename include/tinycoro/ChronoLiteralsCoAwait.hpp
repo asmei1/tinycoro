@@ -29,7 +29,7 @@ auto operator co_await(std::chrono::duration<Rep, Period> dur)
 
         void await_suspend(std::coroutine_handle<> h)
         {
-            std::thread([=]() {
+            std::thread([this, h]() {
                 std::this_thread::sleep_until(resume_time);
                 h.resume();
             }).detach();

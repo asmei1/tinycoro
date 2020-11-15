@@ -52,7 +52,7 @@ void StaticCoroThreadPool::startWorker(std::stop_token stopToken)
     }
 }
 
-void StaticCoroThreadPool::planOperationWhenIsSuspended(StaticCoroThreadPool::ThreadPoolOperation* operation)
+void StaticCoroThreadPool::scheduleOpOnPoolWhenIsSuspended(StaticCoroThreadPool::ThreadPoolOperation* operation)
 {
     std::unique_lock lock(this->operationsQueueMutex);
 
@@ -60,7 +60,7 @@ void StaticCoroThreadPool::planOperationWhenIsSuspended(StaticCoroThreadPool::Th
     this->operationsCV.notify_one();
 }
 
-void StaticCoroThreadPool::waitForAllWorkers()
+void StaticCoroThreadPool::wait()
 {
     std::unique_lock lock(this->operationsQueueMutex);
     this->waitForAllWorkersCV.wait(lock, [&]() { return this->operationsQueue.empty(); });
@@ -79,7 +79,7 @@ void StaticCoroThreadPool::ThreadPoolOperation::await_suspend(std::coroutine_han
 {
     // Store given coro handle and put operation into
     this->awaitingCoro = awaitingCoro;
-    this->pool->planOperationWhenIsSuspended(this);
+    this->pool->scheduleOpOnPoolWhenIsSuspended(this);
 }
 
 void StaticCoroThreadPool::ThreadPoolOperation::await_resume() noexcept

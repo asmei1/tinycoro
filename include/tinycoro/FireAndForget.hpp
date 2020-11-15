@@ -17,7 +17,7 @@ namespace tinycoro
      * Fire and forget, you are not interested in its result or whether it has managed to do something
      * Any exception will terminate application.
      */
-    class FireAndForget : std::suspend_never
+    class FireAndForget
     {
     public:
         struct FireAndForgetPromise;
