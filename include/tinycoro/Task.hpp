@@ -16,7 +16,6 @@ namespace tinycoro
         class TaskPromise;
 
     public:
-
         Task() : coroHandle(nullptr)
         {}
         Task(Task& t) = delete;
@@ -41,6 +40,7 @@ namespace tinycoro
             {
                 awaiter(promise_coro_handle coro) : coro(coro)
                 {}
+
                 bool await_ready() const noexcept
                 {
                     return false;
@@ -71,12 +71,13 @@ namespace tinycoro
 
         promise_coro_handle coroHandle;
 
-
-        class TaskPromiseBase{
+        class TaskPromiseBase
+        {
         protected:
             friend class Task;
             std::coroutine_handle<> continuation;
             std::exception_ptr exceptionPtr;
+
         public:
             std::suspend_always initial_suspend() const noexcept
             {
@@ -108,9 +109,10 @@ namespace tinycoro
                 this->exceptionPtr = std::current_exception();
             }
 
-
-            void rethrowExceptionIfExists(){
-                if(this->exceptionPtr){
+            void rethrowExceptionIfExists()
+            {
+                if(this->exceptionPtr)
+                {
                     std::rethrow_exception(this->exceptionPtr);
                 }
             }
@@ -119,6 +121,7 @@ namespace tinycoro
         class TaskPromise : public TaskPromiseBase
         {
             T value;
+
         public:
             void return_value(T value)
             {
@@ -139,18 +142,15 @@ namespace tinycoro
             {
                 return Task{promise_coro_handle::from_promise(*this)};
             }
-
         };
-
     };
 
-    template<>
+    template <>
     class Task<void>::TaskPromise : public TaskPromiseBase
     {
     public:
         void return_void()
-        {
-        }
+        {}
 
         void result()
         {
@@ -164,7 +164,6 @@ namespace tinycoro
         {
             return Task{promise_coro_handle::from_promise(*this)};
         }
-
     };
 
 } // namespace tinycoro
