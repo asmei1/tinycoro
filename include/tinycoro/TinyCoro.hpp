@@ -7,6 +7,7 @@
 
 #include "Traits.hpp"
 #include "Task.hpp"
+#include "Generator.hpp"
 #include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
 
