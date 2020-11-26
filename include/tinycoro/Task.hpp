@@ -74,6 +74,10 @@ namespace tinycoro
         class TaskPromiseBase
         {
         protected:
+            TaskPromiseBase() = default;
+            virtual ~TaskPromiseBase() = default;
+
+
             friend class Task;
             std::coroutine_handle<> continuation;
             std::exception_ptr exceptionPtr;
