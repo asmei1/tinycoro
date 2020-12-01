@@ -3,12 +3,29 @@
 //
 
 #include "tinycoro/TinyCoro.hpp"
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <ranges>
 #include <sys/epoll.h>
 #include <unistd.h>
-#include <cstdlib>
+tinycoro::Generator<epoll_event> awaitingEvents(int fd, epoll_event* events, const int maxEvents, int timeout)
+{
+    std::cout << "Waiting for input...." << std::endl;
+
+    std::cout << fd << " " << events << " " << maxEvents << " " << timeout << std::endl;
+    int eventCount = epoll_wait(fd, events, maxEvents, timeout);
+    std::cout << eventCount << " ready events" << std::endl;
+
+    if(eventCount == -1)
+    {
+        std::cout << "ERROR! : " << strerror(errno) << std::endl;
+    }
+    for(int i = 0; i < eventCount; ++i)
+    {
+        co_yield events[i];
+    }
+}
 
 int main()
 {
@@ -43,20 +60,15 @@ int main()
 
     while(running)
     {
-        std::cout << "Waiting for input...." << std::endl;
-        eventCount = epoll_wait(epollFD, events.data(), MAX_EVENTS, 10000);
-        std::cout << eventCount << " ready events" << std::endl;
-        if(eventCount == -1){
-            std::cout << "ERROR! : " << strerror(errno) << std::endl;
-        }
-        for(int i = 0; i < eventCount; ++i)
+        for(auto& e : awaitingEvents(epollFD, events.data(), MAX_EVENTS, 10000))
         {
-            std::cout << "Reading file description " << events[i].data.fd << std::endl;
-            bytesRead = read(events[i].data.fd, readBuffer, READ_SIZE);
+            std::cout << "Reading file description " << e.data.fd << std::endl;
+            bytesRead = read(e.data.fd, readBuffer, READ_SIZE);
             readBuffer[bytesRead] = '\0';
             std::cout << "DATA: " << readBuffer << std::endl;
 
-            if(!strncmp(readBuffer, "stop", 4)){
+            if(!strncmp(readBuffer, "stop", 4))
+            {
                 running = false;
             }
         }
