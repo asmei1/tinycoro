@@ -13,7 +13,7 @@
        starvation scenarios, where a process fails to notice that additional
        file descriptors are ready because it focuses on a set of file
        descriptors that are already known to be ready.
- *
+ * 3. Possibility to set timeout for wait for events
  * . Close fd
 */
 namespace tinycoro::io

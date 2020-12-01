@@ -3,122 +3,69 @@
 //
 
 #include "tinycoro/TinyCoro.hpp"
-#include <chrono>
-#include <coroutine>
+#include <cstring>
 #include <iostream>
-#include <thread>
-using namespace std::chrono_literals;
-
-tinycoro::FireAndForget test2()
-{
-    std::cout << "Hello" << std::endl;
-}
-
-tinycoro::FireAndForget sampleTestOfThreadPool(tinycoro::StaticCoroThreadPool& pool)
-{
-    std::cout << "Thread ID before co_await: " << std::this_thread::get_id() << std::endl;
-    co_await pool.getScheduler().schedule();
-    std::cout << "Before sleep" << std::endl;
-    std::this_thread::sleep_for(3s);
-    std::cout << "After sleep, thread ID: " << std::this_thread::get_id() << std::endl;
-}
-
-tinycoro::FireAndForget sampleTestOfThreadPoolWithDelay(tinycoro::StaticCoroThreadPool& pool)
-{
-    std::cout << "Thread ID before co_await with delay: " << std::this_thread::get_id() << std::endl;
-    co_await pool.getScheduler().schedule();
-    std::this_thread::sleep_for(3s);
-    std::cout << "Thread ID after co_await with delay: " << std::this_thread::get_id() << std::endl;
-}
-
-tinycoro::Task<float> completes_synchronously1()
-{
-    std::cout << "I'm trying to do something!\n";
-    co_return 12;
-}
-tinycoro::Task<int> completes_synchronously()
-{
-    auto i = co_await completes_synchronously1();
-    std::cout << "I'm trying to do something!\n";
-    co_return 12;
-}
-
-tinycoro::FireAndForget sampleWithTraitArgument(tinycoro::scheduler_trait auto scheduler)
-{
-    co_await completes_synchronously();
-    std::cout << "Thread ID before co_await: " << std::this_thread::get_id() << std::endl;
-    co_await scheduler.schedule();
-    std::cout << "Before sleep" << std::endl;
-    std::this_thread::sleep_for(3s);
-    std::cout << "After sleep, thread ID: " << std::this_thread::get_id() << std::endl;
-}
-
-tinycoro::Task<void> loop_synchronously(long count)
-{
-    std::cout << "loop_synchronously(" << count << ")" << std::endl;
-    for(long i = 0; i < count; ++i)
-    {
-        co_await completes_synchronously();
-    }
-    std::cout << "loop_synchronously(" << count << ") returning" << std::endl;
-}
-
-tinycoro::FireAndForget runner()
-{
-    int result = co_await completes_synchronously();
-    std::cout << "Result " << result << std::endl;
-}
-
-tinycoro::Generator<int> one_two_three()
-{
-    co_yield 1;
-    co_yield 2;
-    co_yield 3;
-}
-
-tinycoro::Task<void> runGeneratorOnAnotherThread(tinycoro::Generator<int> generator,
-                                                 tinycoro::scheduler_trait auto pool)
-{
-    std::cout << "ID:" << std::this_thread::get_id() << std::endl;
-    co_await pool.schedule();
-    for(auto i : generator)
-    {
-        std::cout << "From range function on other pool: " << i << std::endl;
-    }
-    std::cout << "PO ID:" << std::this_thread::get_id() << std::endl;
-}
+#include <ranges>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <cstdlib>
 
 int main()
 {
-    std::vector<int> t = {1, 2, 3, 4, 6, 7, 8};
-    for(auto i : tinycoro::range(t.begin(), t.end()))
+    constexpr int MAX_EVENTS = 4;
+    constexpr int READ_SIZE = 10;
+
+    bool running = true;
+    int eventCount = 0;
+    size_t bytesRead = 0;
+    char readBuffer[READ_SIZE + 1];
+    std::array<epoll_event, MAX_EVENTS> events;
+    epoll_event event;
+
+    constexpr int stdinFD = 0;
+
+    int epollFD = epoll_create1(0);
+
+    if(-1 == epollFD)
     {
-        std::cout << "From range function: " << *i << std::endl;
-    }
-    for(auto i : tinycoro::range(t.begin(), t.end(), 2))
-    {
-        std::cout << "From range function: " << *i << std::endl;
+        std::cerr << "Error" << std::endl;
+        exit(1);
     }
 
-    for(auto i : tinycoro::range(0., 10., 1.5))
+    event.events = EPOLLIN;
+    event.data.fd = 0;
+    if(-1 == epoll_ctl(epollFD, EPOLL_CTL_ADD, stdinFD, events.data()))
     {
-        std::cout << "From range function: " << i << std::endl;
+        std::cerr << "Error" << std::endl;
+        close(epollFD);
+        exit(1);
     }
 
-    //    runner();
-    //    sampleWithTraitArgument(pool.getScheduler());
+    while(running)
+    {
+        std::cout << "Waiting for input...." << std::endl;
+        eventCount = epoll_wait(epollFD, events.data(), MAX_EVENTS, 10000);
+        std::cout << eventCount << " ready events" << std::endl;
+        if(eventCount == -1){
+            std::cout << "ERROR! : " << strerror(errno) << std::endl;
+        }
+        for(int i = 0; i < eventCount; ++i)
+        {
+            std::cout << "Reading file description " << events[i].data.fd << std::endl;
+            bytesRead = read(events[i].data.fd, readBuffer, READ_SIZE);
+            readBuffer[bytesRead] = '\0';
+            std::cout << "DATA: " << readBuffer << std::endl;
 
-    //    runner();
-    //    tinycoro::fireAndForget(loop_synchronously(1000));
-    //    loop_synchronously(1'000'000'000);
-    //    tinycoro::StaticCoroThreadPool pool{4};
-    //    std::cout << "Thread count " << pool.threadCount() << std::endl;
-    //    for(int i = 0; i < 4; i++)
-    //    {
-    //        std::cout << i << std::endl;
-    //        sampleWithTraitArgument(pool.getScheduler());
-    //    }
-    //    pool.wait();
+            if(!strncmp(readBuffer, "stop", 4)){
+                running = false;
+            }
+        }
+    }
+
+    if(close(epollFD))
+    {
+        std::cerr << "Cannot close fd" << std::endl;
+    }
 
     return 0;
 }
