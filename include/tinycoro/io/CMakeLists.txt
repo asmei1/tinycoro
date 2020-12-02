@@ -1,1 +1,1 @@
-add_library(io IOContext.hpp IOContext.cpp)
+add_library(io IOContext.hpp IOContext.cpp IOEvent.cpp IOEvent.hpp)

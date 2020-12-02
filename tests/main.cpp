@@ -8,49 +8,50 @@
 #include <iostream>
 #include <unistd.h>
 
-int main()
+tinycoro::Task<> readFromStdin(tinycoro::io::IOContext& context, bool& stopToken)
 {
-    constexpr int MAX_EVENTS = 4;
     constexpr int READ_SIZE = 10;
-    tinycoro::io::IOContext ioContext{MAX_EVENTS};
-
-    bool running = true;
     int eventCount = 0;
     size_t bytesRead = 0;
     char readBuffer[READ_SIZE + 1];
-    epoll_event event;
 
-    constexpr int stdinFD = 0;
-
-    event.events = EPOLLIN;
-    event.data.fd = 0;
-    if(-1 == epoll_ctl(ioContext.epollFD, EPOLL_CTL_ADD, stdinFD, &event))
-    {
-        std::cerr << "Error" << strerror(errno) << std::endl;
-        exit(1);
-    }
-
-    while(running)
+    tinycoro::io::IOEvent e{context};
+    while(true)
     {
         try
         {
-            for(auto& e : ioContext.processAwaitingEvents(10000))
-            {
-                std::cout << "Reading file description " << e.data.fd << std::endl;
-                bytesRead = read(e.data.fd, readBuffer, READ_SIZE);
-                readBuffer[bytesRead] = '\0';
-                std::cout << "DATA: " << readBuffer << std::endl;
+            co_await e;
+            std::cout << "Reading file description " << e.e.data.fd << std::endl;
+            bytesRead = read(e.e.data.fd, readBuffer, READ_SIZE);
+            readBuffer[bytesRead] = '\0';
+            std::cout << "DATA: " << readBuffer << std::endl;
 
-                if(!strncmp(readBuffer, "stop", 4))
-                {
-                    running = false;
-                }
+            if(!strncmp(readBuffer, "stop", 4))
+            {
+                stopToken = false;
             }
         }
         catch(std::runtime_error& e)
         {
             std::cerr << e.what() << std::endl;
         }
+        catch(...){
+
+        }
+    }
+}
+
+int main()
+{
+    constexpr int MAX_EVENTS = 4;
+    tinycoro::io::IOContext ioContext{MAX_EVENTS};
+
+    bool running = true;
+
+    tinycoro::fireAndForget(readFromStdin(ioContext, running));
+    while(running)
+    {
+        ioContext.processAwaitingEvents(10000);
     }
     return 0;
 }

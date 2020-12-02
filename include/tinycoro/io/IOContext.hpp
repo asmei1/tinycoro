@@ -20,6 +20,8 @@
 #include <sys/epoll.h>
 
 #include "../Generator.hpp"
+#include "IOEvent.hpp"
+
 namespace tinycoro::io
 {
     class IOContextException : public std::runtime_error
@@ -40,45 +42,17 @@ namespace tinycoro::io
         IOContext(IOContext&&) = delete;
         IOContext& operator=(IOContext&&) = delete;
 
-        struct Scheduler;
-        struct IOContextOperation;
-
-        IOContextOperation schedule();
-
-        tinycoro::Generator<epoll_event> processAwaitingEvents(int timeout);
+        void processAwaitingEvents(int timeout);
 
         int epollFD = -1;
+
     private:
-        const uint32_t eventPoolCount;
+        friend class IOEvent;
+
+        tinycoro::Generator<IOEvent::Coroutine> yieldAwaitingEvents(int timeout);
+
         std::unique_ptr<epoll_event[]> eventsList;
-    };
-
-    struct IOContext::IOContextOperation
-    {
-        IOContextOperation(IOContext& pool) : pool(pool)
-        {}
-
-        [[nodiscard]] IOContext::IOContextOperation schedule()
-        {
-            return {this->pool};
-        }
-
-    private:
-        IOContext& pool;
-    };
-
-    struct IOContext::Scheduler
-    {
-        Scheduler(IOContext& pool) : pool(pool)
-        {}
-
-        [[nodiscard]] IOContext::IOContextOperation schedule()
-        {
-            return {this->pool};
-        }
-
-    private:
-        IOContext& pool;
+        const uint32_t eventPoolCount;
     };
 
 };     // namespace tinycoro::io
