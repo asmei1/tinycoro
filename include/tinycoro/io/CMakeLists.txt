@@ -1,1 +1,1 @@
-target_sources(TinyCoro PRIVATE IOContext.hpp)
+add_library(io IOContext.hpp IOContext.cpp)

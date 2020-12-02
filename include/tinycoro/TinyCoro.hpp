@@ -12,6 +12,6 @@
 #include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
 
-#include "include/tinycoro/io/IOContext.hpp"
+#include "io/IOContext.hpp"
 
 #endif // TINYCORO_TINYCORO_HPP
