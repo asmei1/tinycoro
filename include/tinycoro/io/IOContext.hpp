@@ -16,12 +16,23 @@
  * 3. Possibility to set timeout for wait for events
  * . Close fd
 */
+#include <memory>
+#include <sys/epoll.h>
+
+#include "../Generator.hpp"
 namespace tinycoro::io
 {
+    class IOContextException : public std::runtime_error
+    {
+    public:
+        IOContextException(const char* msg) : std::runtime_error(msg)
+        {}
+    };
+
     class IOContext
     {
     public:
-        IOContext();
+        explicit IOContext(uint32_t eventPoolCount);
         ~IOContext();
 
         IOContext(IOContext&) = delete;
@@ -34,10 +45,12 @@ namespace tinycoro::io
 
         IOContextOperation schedule();
 
-        void processAwaitingEvents();
+        tinycoro::Generator<epoll_event> processAwaitingEvents(int timeout);
 
+        int epollFD = -1;
     private:
-
+        const uint32_t eventPoolCount;
+        std::unique_ptr<epoll_event[]> eventsList;
     };
 
     struct IOContext::IOContextOperation
