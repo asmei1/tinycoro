@@ -21,7 +21,7 @@ namespace tinycoro::io
         eventSettings.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
 
         if(not (fcntl(fd, F_GETFD) != -1 || errno != EBADF)){
-            throw IOContextException{0, "NOt open fd"};
+            throw std::system_error{errno, std::system_category(), "Passed invalid file description"};
         }
     }
 

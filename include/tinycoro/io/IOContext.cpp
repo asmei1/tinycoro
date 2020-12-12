@@ -17,7 +17,7 @@ namespace tinycoro::io
 
         if(-1 == this->epollFD)
         {
-            throw IOContextException{errno, strerror(errno)};
+            throw std::system_error{errno, std::system_category(), strerror(errno)};
         }
     }
 
@@ -40,7 +40,7 @@ namespace tinycoro::io
 
         if(eventCount == -1)
         {
-            throw IOContextException(errno, strerror(errno));
+            throw std::system_error{errno, std::system_category(), strerror(errno)};
         }
         for(int i = 0; i < eventCount; ++i)
         {
@@ -59,14 +59,13 @@ namespace tinycoro::io
             if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_MOD, event.fd, &event.eventSettings))
                 return;
 
-        // if there were some errors during event polling, throw exception
-        throw IOContextException(errno, strerror(errno));
+        throw std::system_error{errno, std::system_category(), strerror(errno)};
     }
 
     void IOContext::removeEvent(IOEvent& event)
     {
         if(0 != epoll_ctl(this->epollFD, EPOLL_CTL_DEL, event.fd, &event.eventSettings))
-            throw IOContextException{errno, "epoll_ctl EPOLL_CTL_DEL"};
+            throw std::system_error{errno, std::system_category(), "epoll_ctl EPOLL_CTL_DEL"};
     }
 
 } // namespace tinycoro::io

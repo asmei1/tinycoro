@@ -37,6 +37,13 @@ tinycoro::Task<> readFromStdin(tinycoro::io::IOContext& context, bool& stopToken
                 stopToken = false;
                 break;
             }
+            
+            if(!strncmp(readBuffer, "remove", 6))
+            {
+                context.removeEvent(e);
+                break;
+            }
+
         }
         catch(std::runtime_error& e)
         {
@@ -59,7 +66,7 @@ int main()
     tinycoro::fireAndForget(readFromStdin(ioContext, running));
     while(running)
     {
-//        std::cout << "Waiting for events" << std::endl;
+        std::cout << "Waiting for events" << std::endl;
         ioContext.processAwaitingEvents(10000);
     }
 

@@ -27,15 +27,6 @@
 
 namespace tinycoro::io
 {
-    class IOContextException : public std::runtime_error
-    {
-    public:
-        IOContextException(int errorCode, const char* msg) : std::runtime_error(msg)
-        {}
-
-        int errorCode = -1;
-    };
-
     class IOContext
     {
     public:
