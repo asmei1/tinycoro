@@ -12,8 +12,8 @@
 #include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
 
+#include "io/IOAsyncAutoResetEvent.hpp"
 #include "io/IOContext.hpp"
 #include "io/IOOperation.hpp"
-#include "io/IOEvent.hpp"
 
 #endif // TINYCORO_TINYCORO_HPP

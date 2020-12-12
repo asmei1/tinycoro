@@ -27,7 +27,7 @@ namespace tinycoro::io
 
         friend class IOContext;
 
-        int fd;
+        uint64_t fd;
         IOContext& ioContext;
         epoll_event settings;
     };

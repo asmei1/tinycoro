@@ -40,7 +40,7 @@ namespace tinycoro::io
         {
             throw std::system_error{errno, std::system_category(), strerror(errno)};
         }
-        
+
         for(int i = 0; i < eventCount; ++i)
         {
             co_yield std::coroutine_handle<IOOperation>::from_address(this->eventsList[i].data.ptr);
