@@ -10,15 +10,16 @@
 
 namespace tinycoro::io
 {
-    IOEvent::IOEvent(IOContext& context) : ioContext(context)
+    IOEvent::IOEvent(IOContext& context) : IOOperation(context)
     {
-        eventSettings.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
+        this->settings.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
         this->fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     }
 
-    IOEvent::IOEvent(IOContext& context, int fd) : ioContext(context), fd(fd)
+    IOEvent::IOEvent(IOContext& context, int fd) : IOOperation(context)
     {
-        eventSettings.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
+        this->fd = fd;
+        this->settings.events = EPOLLIN | EPOLLOUT | EPOLLONESHOT;
 
         if(not (fcntl(fd, F_GETFD) != -1 || errno != EBADF)){
             throw std::system_error{errno, std::system_category(), "Passed invalid file description"};
@@ -37,9 +38,9 @@ namespace tinycoro::io
 
     void IOEvent::await_suspend(std::coroutine_handle<> awaitingCoro)
     {
-        this->eventSettings.data.ptr = awaitingCoro.address();
+        this->settings.data.ptr = awaitingCoro.address();
 
-        this->ioContext.scheduleEvent(*this);
+        this->ioContext.scheduleOperation(*this);
     }
 
     void IOEvent::await_resume() noexcept
@@ -55,28 +56,23 @@ namespace tinycoro::io
         return ::read(this->fd, buffer, buffSize);
     }
 
-    int IOEvent::getFD() const
-    {
-        return this->fd;
-    }
-
     IOReadOnlyEvent::IOReadOnlyEvent(IOContext& context) : IOEvent(context)
     {
-        this->eventSettings.events = EPOLLIN | EPOLLONESHOT;
+        this->settings.events = EPOLLIN | EPOLLONESHOT;
     }
 
     IOReadOnlyEvent::IOReadOnlyEvent(IOContext& context, int fd) : IOEvent(context, fd)
     {
-        this->eventSettings.events = EPOLLIN | EPOLLONESHOT;
+        this->settings.events = EPOLLIN | EPOLLONESHOT;
     }
 
     IOWriteOnlyEvent::IOWriteOnlyEvent(IOContext& context) : IOEvent(context)
     {
-        this->eventSettings.events = EPOLLOUT | EPOLLONESHOT;
+        this->settings.events = EPOLLOUT | EPOLLONESHOT;
     }
 
     IOWriteOnlyEvent::IOWriteOnlyEvent(IOContext& context, int fd) : IOEvent(context, fd)
     {
-        this->eventSettings.events = EPOLLOUT | EPOLLONESHOT;
+        this->settings.events = EPOLLOUT | EPOLLONESHOT;
     }
 } // namespace tinycoro::io

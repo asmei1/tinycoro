@@ -7,16 +7,14 @@
 #include <coroutine>
 #include <sys/epoll.h>
 #include <utility>
+#include "IOOperation.hpp"
+
 
 namespace tinycoro::io
 {
-    class IOContext;
-
-    class IOEvent
+    class IOEvent : public IOOperation
     {
     public:
-        using Coroutine = std::coroutine_handle<>;
-
         IOEvent(IOContext& context);
         IOEvent(IOContext& context, int fd);
         IOEvent(IOEvent& t) = delete;
@@ -34,13 +32,7 @@ namespace tinycoro::io
         size_t read(void* buffer, size_t buffSize);
         size_t write(void* buffer, size_t buffSize);
 
-        int getFD() const;
-
     protected:
-        int fd = -1;
-        friend class IOContext;
-        IOContext& ioContext;
-        epoll_event eventSettings;
     };
 
     class IOReadOnlyEvent : public IOEvent

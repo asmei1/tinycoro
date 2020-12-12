@@ -35,7 +35,7 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
 
             if(!strncmp(readBuffer, "remove", 6))
             {
-                context.removeEvent(e);
+                context.removeScheduledOperation(e);
                 break;
             }
         }

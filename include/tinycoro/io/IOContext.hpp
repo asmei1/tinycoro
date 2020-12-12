@@ -19,11 +19,12 @@
  * Maybe add some trait to get Event?
  * . Close fd
 */
+#include <cstring>
 #include <memory>
 #include <sys/epoll.h>
 
 #include "../Generator.hpp"
-#include "IOEvent.hpp"
+#include "IOOperation.hpp"
 
 namespace tinycoro::io
 {
@@ -40,18 +41,32 @@ namespace tinycoro::io
 
         void processAwaitingEvents(int timeout);
 
+        void scheduleOperation(std::derived_from<IOOperation> auto& operation)
+        {
+            // ok?
+            if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_ADD, operation.fd, &operation.settings))
+                return;
 
-        void scheduleEvent(IOEvent& event);
-        void removeEvent(IOEvent& event);
+            if(errno == EEXIST)
+                // re-init event
+                if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_MOD, operation.fd, &operation.settings))
+                    return;
 
-        int epollFD = -1;
+            throw std::system_error{errno, std::system_category(), strerror(errno)};
+        }
+
+        void removeScheduledOperation(std::derived_from<IOOperation> auto& operation)
+        {
+            if(0 != epoll_ctl(this->epollFD, EPOLL_CTL_DEL, operation.fd, {}))
+                throw std::system_error{errno, std::system_category(), "epoll_ctl EPOLL_CTL_DEL"};
+        }
+
     private:
-        friend class IOEvent;
-
-        tinycoro::Generator<IOEvent::Coroutine> yieldAwaitingEvents(int timeout);
+        tinycoro::Generator<IOOperation::CoroHandle> yieldAwaitingEvents(int timeout);
 
         std::unique_ptr<epoll_event[]> eventsList;
         const uint32_t eventPoolCount;
+        int epollFD = -1;
     };
 
 };     // namespace tinycoro::io

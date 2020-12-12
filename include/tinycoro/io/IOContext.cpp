@@ -2,9 +2,7 @@
 // Created by Asmei on 11/27/2020.
 //
 #include "IOContext.hpp"
-#include <cstring>
 #include <iostream>
-#include <sys/epoll.h>
 #include <unistd.h>
 
 namespace tinycoro::io
@@ -34,7 +32,7 @@ namespace tinycoro::io
         }
     }
 
-    tinycoro::Generator<IOEvent::Coroutine> IOContext::yieldAwaitingEvents(int timeout)
+    tinycoro::Generator<IOOperation::CoroHandle> IOContext::yieldAwaitingEvents(int timeout)
     {
         int eventCount = epoll_wait(this->epollFD, this->eventsList.get(), this->eventPoolCount, timeout);
 
@@ -42,30 +40,12 @@ namespace tinycoro::io
         {
             throw std::system_error{errno, std::system_category(), strerror(errno)};
         }
+        
         for(int i = 0; i < eventCount; ++i)
         {
-            co_yield std::coroutine_handle<IOEvent>::from_address(this->eventsList[i].data.ptr);
+            co_yield std::coroutine_handle<IOOperation>::from_address(this->eventsList[i].data.ptr);
         }
     }
 
-    void IOContext::scheduleEvent(IOEvent& event)
-    {
-        // ok?
-        if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_ADD, event.fd, &event.eventSettings))
-            return;
-
-        if(errno == EEXIST)
-            // re-init event
-            if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_MOD, event.fd, &event.eventSettings))
-                return;
-
-        throw std::system_error{errno, std::system_category(), strerror(errno)};
-    }
-
-    void IOContext::removeEvent(IOEvent& event)
-    {
-        if(0 != epoll_ctl(this->epollFD, EPOLL_CTL_DEL, event.fd, &event.eventSettings))
-            throw std::system_error{errno, std::system_category(), "epoll_ctl EPOLL_CTL_DEL"};
-    }
 
 } // namespace tinycoro::io

@@ -13,5 +13,7 @@
 #include "FireAndForget.hpp"
 
 #include "io/IOContext.hpp"
+#include "io/IOOperation.hpp"
+#include "io/IOEvent.hpp"
 
 #endif // TINYCORO_TINYCORO_HPP
