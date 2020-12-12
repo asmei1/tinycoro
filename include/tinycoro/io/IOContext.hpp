@@ -14,6 +14,9 @@
        file descriptors are ready because it focuses on a set of file
        descriptors that are already known to be ready.
  * 3. Possibility to set timeout for wait for events
+ *
+ * //Cannot use EPOLLOUT for stdin (and i think that opposite way (stdout and EPOLLIN) it forbidden too...)
+ * Maybe add some trait to get Event?
  * . Close fd
 */
 #include <memory>
@@ -27,8 +30,10 @@ namespace tinycoro::io
     class IOContextException : public std::runtime_error
     {
     public:
-        IOContextException(const char* msg) : std::runtime_error(msg)
+        IOContextException(int errorCode, const char* msg) : std::runtime_error(msg)
         {}
+
+        int errorCode = -1;
     };
 
     class IOContext
@@ -44,8 +49,11 @@ namespace tinycoro::io
 
         void processAwaitingEvents(int timeout);
 
-        int epollFD = -1;
 
+        void scheduleEvent(IOEvent& event);
+        void removeEvent(IOEvent& event);
+
+        int epollFD = -1;
     private:
         friend class IOEvent;
 

@@ -5,10 +5,11 @@
 #ifndef TINYCORO_IOEVENT_H
 #define TINYCORO_IOEVENT_H
 #include <coroutine>
-#include <utility>
 #include <sys/epoll.h>
+#include <utility>
 
-namespace tinycoro::io{
+namespace tinycoro::io
+{
     class IOContext;
 
     class IOEvent
@@ -17,21 +18,48 @@ namespace tinycoro::io{
         using Coroutine = std::coroutine_handle<>;
 
         IOEvent(IOContext& context);
+        IOEvent(IOContext& context, int fd);
         IOEvent(IOEvent& t) = delete;
+        IOEvent& operator=(IOEvent&) = delete;
 
+        IOEvent& operator=(IOEvent&& t) = delete;
         IOEvent(IOEvent&& t) = delete;
 
-        ~IOEvent() = default;
+        virtual ~IOEvent();
 
         bool await_ready() noexcept;
         void await_suspend(std::coroutine_handle<> awaitingCoro);
         void await_resume() noexcept;
 
-        epoll_event e;
-    private:
-        IOContext& ioContext;
+        size_t read(void* buffer, size_t buffSize);
+        size_t write(void* buffer, size_t buffSize);
 
+        int getFD() const;
+
+    protected:
+        int fd = -1;
+        friend class IOContext;
+        IOContext& ioContext;
+        epoll_event eventSettings;
     };
-}
+
+    class IOReadOnlyEvent : public IOEvent
+    {
+    public:
+        IOReadOnlyEvent(IOContext& context);
+        IOReadOnlyEvent(IOContext& context, int fd);
+
+        size_t write(void* buffer, size_t buffSize) = delete;
+    };
+
+    class IOWriteOnlyEvent : public IOEvent
+    {
+    public:
+        IOWriteOnlyEvent(IOContext& context);
+        IOWriteOnlyEvent(IOContext& context, int fd);
+
+        size_t read(void* buffer, size_t buffSize) = delete;
+    };
+} // namespace tinycoro::io
 
 #endif // TINYCORO_IOEVENT_H
