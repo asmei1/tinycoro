@@ -29,7 +29,7 @@ namespace tinycoro::io
 
         uint64_t fd;
         IOContext& ioContext;
-        epoll_event settings;
+        epoll_event settings = {};
     };
 } // namespace tinycoro::io
 #endif // TINYCORO_IOOPERATION_HPP

@@ -12,7 +12,8 @@
 #include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
 
-#include "io/IOAsyncAutoResetEvent.hpp"
+#include "io/EpollAsyncAutoResetEvent.hpp"
+#include "io/IOAsyncStdin.hpp"
 #include "io/IOContext.hpp"
 #include "io/IOOperation.hpp"
 

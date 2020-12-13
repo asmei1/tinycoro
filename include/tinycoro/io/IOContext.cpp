@@ -2,7 +2,6 @@
 // Created by Asmei on 11/27/2020.
 //
 #include "IOContext.hpp"
-#include <iostream>
 #include <unistd.h>
 
 namespace tinycoro::io
@@ -35,7 +34,6 @@ namespace tinycoro::io
     tinycoro::Generator<IOOperation::CoroHandle> IOContext::yieldAwaitingEvents(int timeout)
     {
         int eventCount = epoll_wait(this->epollFD, this->eventsList.get(), this->eventPoolCount, timeout);
-
         if(eventCount == -1)
         {
             throw std::system_error{errno, std::system_category(), strerror(errno)};
