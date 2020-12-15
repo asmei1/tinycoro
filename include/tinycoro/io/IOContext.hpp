@@ -4,21 +4,8 @@
 
 #ifndef TINYCORO_IOCONTEXT_HPP
 #define TINYCORO_IOCONTEXT_HPP
-/*
- * 1. Create fd for whole process?
- * 2. Prepare MAX_EVENT
-       If more than maxevents file descriptors are ready when epoll_wait()
-       is called, then successive epoll_wait() calls will round robin
-       through the set of ready file descriptors.  This behavior helps avoid
-       starvation scenarios, where a process fails to notice that additional
-       file descriptors are ready because it focuses on a set of file
-       descriptors that are already known to be ready.
- * 3. Possibility to set timeout for wait for events
- *
- * //Cannot use EPOLLOUT for stdin (and i think that opposite way (stdout and EPOLLIN) it forbidden too...)
- * Maybe add some trait to get Event?
- * . Close fd
-*/
+
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include <sys/epoll.h>
@@ -28,37 +15,80 @@
 
 namespace tinycoro::io
 {
+    /*
+     * IOContext is the class for scheduling and invoking IO events, based on epoll_event mechanism from Linux.
+     */
     class IOContext
     {
     public:
+        /*
+         * Create IOContext object.
+         * @param eventPoolCount number of events which will be processed in one call of epoll_wait.
+         */
         explicit IOContext(uint32_t eventPoolCount);
         ~IOContext();
 
+        // Non-copyable
         IOContext(IOContext&) = delete;
         IOContext& operator=(IOContext&) = delete;
-        IOContext(IOContext&&) = delete;
-        IOContext& operator=(IOContext&&) = delete;
 
-        void processAwaitingEvents(int timeout);
+        /*
+         * Wait for awaiting IO events and resume them.
+         * Blocks current thread until event will ready (ie. file descriptor deliver an event)
+         *
+         * @throw std::system_error Throw std::system_error when something went wrong.
+         */
+        void processAwaitingEvents();
 
+        /*
+         * Wait for awaiting IO events and resume them.
+         * Blocks current thread until event will ready (ie. file descriptor deliver an event)
+         * or timeout expires
+         *
+         * @param timeout Specifies timeout to wait.
+         * @throw std::system_error Throw std::system_error when something went wrong.
+         */
+        void processAwaitingEvents(const std::chrono::milliseconds& timeout);
+
+        /*
+         * Pool any derived from IOOperation object.
+         *
+         * @param operation Any object, which derivered from IOOperation class.
+         * @throw std::system_error Throw std::system_error when something went wrong.
+         */
         void scheduleOperation(std::derived_from<IOOperation> auto& operation)
         {
             // ok?
-            if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_ADD, operation.fd, &operation.settings))
+            if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_ADD, operation.fd, &operation.eventData))
                 return;
 
             if(errno == EEXIST)
                 // re-init event
-                if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_MOD, operation.fd, &operation.settings))
+                if(0 == epoll_ctl(this->epollFD, EPOLL_CTL_MOD, operation.fd, &operation.eventData))
                     return;
 
             throw std::system_error{errno, std::system_category(), strerror(errno)};
         }
 
+        /*
+         * Removed scheduled operation from pool.
+         * Already scheduled operation will be immediately resumed and will throw IOOperationCancel exception.
+         * If operation was not scheduled yet, nothing will happen.
+         *
+         * @operation Specifies IO operation object.
+         */
         void removeScheduledOperation(std::derived_from<IOOperation> auto& operation)
         {
             if(0 != epoll_ctl(this->epollFD, EPOLL_CTL_DEL, operation.fd, {}))
                 throw std::system_error{errno, std::system_category(), "epoll_ctl EPOLL_CTL_DEL"};
+
+            // check, if operation was scheduled
+            if(auto ptr = operation.eventData.data.ptr; ptr != nullptr)
+            {
+                // if yes, resume it and prepare throw
+                operation.eventData.data.ptr = nullptr;
+                IOOperation::CoroHandle::from_address(ptr).resume();
+            }
         }
 
     private:

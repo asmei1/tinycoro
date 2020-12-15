@@ -48,13 +48,15 @@ namespace tinycoro::io
 
         void await_suspend(std::coroutine_handle<> awaitingCoro)
         {
-            this->settings.data.ptr = awaitingCoro.address();
+            this->eventData.data.ptr = awaitingCoro.address();
 
             this->ioContext.scheduleOperation(*this);
         }
 
         auto await_resume() noexcept
         {
+            this->throwExceptionIfCanceled();
+
             return ::read(this->fd, this->buffer, this->bufferSize);
         }
 
@@ -67,7 +69,7 @@ namespace tinycoro::io
               bufferSize(bufferSize)
         {
             this->fd = STDIN_FILENO;
-            this->settings.events = EPOLLIN | EPOLLONESHOT;
+            this->eventData.events = EPOLLIN | EPOLLONESHOT;
         }
 
         void* buffer;

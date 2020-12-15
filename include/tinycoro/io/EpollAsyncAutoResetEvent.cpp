@@ -12,7 +12,7 @@ namespace tinycoro::io
     {
         this->fd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
         //I have to think if epolloneshot is required - without it set call is valid only if object is co_awaited
-        this->settings.events = EPOLLET | EPOLLIN;//| EPOLLONESHOT;
+        this->eventData.events = EPOLLET | EPOLLIN;//| EPOLLONESHOT;
     }
 
     EpollAsyncAutoResetEvent::~EpollAsyncAutoResetEvent()
@@ -28,13 +28,14 @@ namespace tinycoro::io
 
     void EpollAsyncAutoResetEvent::await_suspend(std::coroutine_handle<> awaitingCoro)
     {
-        this->settings.data.ptr = awaitingCoro.address();
+        this->eventData.data.ptr = awaitingCoro.address();
 
         this->ioContext.scheduleOperation(*this);
     }
 
     void EpollAsyncAutoResetEvent::await_resume()
     {
+        this->throwExceptionIfCanceled();
         uint64_t temp;
         if(-1 == read(this->fd, &temp, sizeof(temp)))
             throw std::system_error{errno, std::system_category(), strerror(errno)};

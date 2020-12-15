@@ -1,4 +1,4 @@
-    //
+//
 // Created by Asmei on 11/6/2020.
 //
 #include "StaticCoroThreadPool.hpp"
@@ -16,15 +16,7 @@ namespace tinycoro
 
     StaticCoroThreadPool::~StaticCoroThreadPool()
     {
-        for(auto& t : this->workers)
-        {
-            t.request_stop();
-        }
-
-        for(auto& t : this->workers)
-        {
-            t.join();
-        }
+        shutdown();
     }
 
     void StaticCoroThreadPool::startWorker(std::stop_token stopToken)
@@ -36,7 +28,7 @@ namespace tinycoro
                 std::unique_lock lock(this->operationsQueueMutex);
                 this->operationsCV.wait(lock, stopToken, [&]() { return not this->operationsQueue.empty(); });
 
-                // If thread was stopped, stop worker too
+                // If thread was stopped, shutdown worker too
                 if(stopToken.stop_requested())
                 {
                     return;
@@ -75,6 +67,20 @@ namespace tinycoro
         return StaticCoroThreadPool::Scheduler(*this);
     }
 
+    void StaticCoroThreadPool::shutdown()
+    {
+        for(auto& t : this->workers)
+        {
+            t.request_stop();
+        }
+
+        for(auto& t : this->workers)
+        {
+            if(t.joinable())
+                t.join();
+        }
+    }
+
     bool StaticCoroThreadPool::ThreadPoolOperation::await_ready() noexcept
     {
         return false;
@@ -82,7 +88,7 @@ namespace tinycoro
 
     void StaticCoroThreadPool::ThreadPoolOperation::await_suspend(std::coroutine_handle<> awaitingCoro)
     {
-        // Store given coro handle and put operation into
+        // Store given coro handle and put operation into queue of awaiting coroutines
         this->awaitingCoro = awaitingCoro;
         this->pool.scheduleOpOnPoolWhenIsSuspended(this);
     }

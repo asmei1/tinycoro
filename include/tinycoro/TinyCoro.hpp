@@ -5,16 +5,19 @@
 #ifndef TINYCORO_TINYCORO_HPP
 #define TINYCORO_TINYCORO_HPP
 
-#include "Traits.hpp"
-#include "Task.hpp"
-#include "Generator.hpp"
 #include "Algoritms.hpp"
-#include "StaticCoroThreadPool.hpp"
 #include "FireAndForget.hpp"
+#include "Generator.hpp"
+#include "StaticCoroThreadPool.hpp"
+#include "Task.hpp"
+#include "Traits.hpp"
 
-#include "io/EpollAsyncAutoResetEvent.hpp"
-#include "io/IOAsyncStdin.hpp"
-#include "io/IOContext.hpp"
-#include "io/IOOperation.hpp"
+//IO available only on Linux
+#ifdef __linux__
+    #include "io/EpollAsyncAutoResetEvent.hpp"
+    #include "io/IOAsyncStdin.hpp"
+    #include "io/IOContext.hpp"
+    #include "io/IOOperation.hpp"
+#endif
 
 #endif // TINYCORO_TINYCORO_HPP

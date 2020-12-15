@@ -19,7 +19,7 @@ tinycoro::Task<uint64_t> startComputingOnThread(tinycoro::scheduler_trait auto s
     std::cout << "Moved to new thread (thread id = " << std::this_thread::get_id() << "), starting computations...\n";
     // some computations
     uint64_t result = 0;
-    for(auto i : tinycoro::range(0, 1000000))
+    for(auto i : tinycoro::range(0, 100000))
     {
         result += i;
     }
@@ -34,9 +34,17 @@ tinycoro::FireAndForget waitingForComputationResult(tinycoro::scheduler_trait au
     co_await scheduler.schedule();
 
     std::cout << "Waiting for computation result...(on thread = " << std::this_thread::get_id() << ")\n";
-    uint64_t computationResult = co_await startComputingOnThread(scheduler, e);
+    try
+    {
+        uint64_t computationResult = co_await startComputingOnThread(scheduler, e);
 
-    std::cout << "We got it! Result = " << computationResult << std::endl;
+        std::cout << "We got it! Result = " << computationResult << std::endl;
+    }
+    catch(const tinycoro::io::IOOperationCancel& )
+    {
+        std::cout << "Computation was canceled!" << std::endl;
+    }
+    catch(...){}
 }
 
 tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& stopToken,
@@ -68,6 +76,11 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
             {
                 eTask.set();
             }
+
+            if(!strncmp(readBuffer, "remove", 6))
+            {
+                context.removeScheduledOperation(eTask);
+            }
         }
         catch(std::system_error& e)
         {
@@ -80,12 +93,8 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
     }
 }
 
-tinycoro::FireAndForget processEpollEvents(tinycoro::scheduler_trait auto scheduler, tinycoro::io::IOContext& ioContext,
-                                           bool onThreadPool = false)
+tinycoro::FireAndForget processEpollEvents(tinycoro::scheduler_trait auto scheduler, tinycoro::io::IOContext& ioContext)
 {
-    if(onThreadPool)
-        co_await scheduler.schedule();
-
     std::cout << "Started, thread id = " << std::this_thread::get_id() << std::endl;
 
     tinycoro::io::EpollAsyncAutoResetEvent eTask{ioContext};
@@ -95,7 +104,7 @@ tinycoro::FireAndForget processEpollEvents(tinycoro::scheduler_trait auto schedu
     readFromStdin(ioContext, running, eTask);
     while(running)
     {
-        ioContext.processAwaitingEvents(-1);
+        ioContext.processAwaitingEvents();
     }
 
     std::cout << "Closed, thread id = " << std::this_thread::get_id() << std::endl;
@@ -109,7 +118,7 @@ int main()
     tinycoro::io::IOContext ioContext{MAX_EVENTS};
     tinycoro::StaticCoroThreadPool threadPool{4};
 
-    processEpollEvents(threadPool.getScheduler(), ioContext, true);
+    processEpollEvents(threadPool.getScheduler(), ioContext);
 
     threadPool.wait();
     return 0;

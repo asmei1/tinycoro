@@ -16,7 +16,8 @@ namespace tinycoro::io
     {
     public:
         EpollAsyncAutoResetEvent(IOContext& context);
-        EpollAsyncAutoResetEvent(IOContext& context, int fd);
+
+        // Non-copyable and non-movable
         EpollAsyncAutoResetEvent(EpollAsyncAutoResetEvent& t) = delete;
         EpollAsyncAutoResetEvent& operator=(EpollAsyncAutoResetEvent&) = delete;
 

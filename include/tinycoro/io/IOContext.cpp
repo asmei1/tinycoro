@@ -23,9 +23,17 @@ namespace tinycoro::io
         close(this->epollFD);
     }
 
-    void IOContext::processAwaitingEvents(int timeout)
+    void IOContext::processAwaitingEvents()
     {
-        for(auto& event : this->yieldAwaitingEvents(timeout))
+        for(auto& event : this->yieldAwaitingEvents(-1))
+        {
+            event.resume();
+        }
+    }
+
+    void IOContext::processAwaitingEvents(const std::chrono::milliseconds& timeout)
+    {
+        for(auto& event : this->yieldAwaitingEvents(timeout.count()))
         {
             event.resume();
         }
@@ -44,6 +52,5 @@ namespace tinycoro::io
             co_yield std::coroutine_handle<IOOperation>::from_address(this->eventsList[i].data.ptr);
         }
     }
-
 
 } // namespace tinycoro::io
