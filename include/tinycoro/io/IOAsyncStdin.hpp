@@ -4,16 +4,16 @@
 
 #ifndef TINYCORO_IOASYNCSTDIN_HPP
 #define TINYCORO_IOASYNCSTDIN_HPP
-#include "IOOperation.hpp"
 #include "IOContext.hpp"
+#include "IOOperation.hpp"
 #include <iostream>
 #include <unistd.h>
 namespace tinycoro::io
 {
-    class AsyncStdinOperation;
-
     class AsyncStdin
     {
+        struct StdinOperation;
+
     public:
         AsyncStdin(IOContext& context) : ioContext(context)
         {}
@@ -26,53 +26,59 @@ namespace tinycoro::io
 
         ~AsyncStdin() = default;
 
-        //Version with coro support will be implemented later
-        //AsyncStdinOperation readData(void* buffer, size_t bufferSize);
-        ssize_t readData(void* buffer, size_t bufferSize);
+        StdinOperation readData(void* buffer, size_t bufferSize);
 
     private:
         IOContext& ioContext;
     };
-    class AsyncStdinOperation : public IOOperation
+
+    struct AsyncStdin::StdinOperation : public IOOperation
     {
     public:
-        AsyncStdinOperation(IOContext& context) : IOOperation(context)
-        {
-            this->fd = STDIN_FILENO;
-            this->settings.events = EPOLLIN | EPOLLONESHOT;
-        }
+        StdinOperation(StdinOperation& t) = delete;
+        StdinOperation& operator=(StdinOperation&) = delete;
 
-        AsyncStdinOperation(AsyncStdinOperation& t) = delete;
-        AsyncStdinOperation& operator=(AsyncStdinOperation&) = delete;
-
-        AsyncStdinOperation& operator=(AsyncStdinOperation&& t) = delete;
-        AsyncStdinOperation(AsyncStdinOperation&& t) = delete;
+        StdinOperation& operator=(StdinOperation&& t) = delete;
+        StdinOperation(StdinOperation&& t) = delete;
 
         bool await_ready() noexcept
         {
             return false;
         }
+
         void await_suspend(std::coroutine_handle<> awaitingCoro)
         {
             this->settings.data.ptr = awaitingCoro.address();
 
             this->ioContext.scheduleOperation(*this);
         }
-        void await_resume() noexcept
-        {}
 
-        ssize_t readFromStream(void* buffer, size_t bufferSize){
-            return ::read(this->fd, buffer, bufferSize);
+        auto await_resume() noexcept
+        {
+            return ::read(this->fd, this->buffer, this->bufferSize);
         }
+
+    private:
+        friend class AsyncStdin;
+
+        StdinOperation(IOContext& context, void* buffer, size_t bufferSize)
+            : IOOperation(context),
+              buffer(buffer),
+              bufferSize(bufferSize)
+        {
+            this->fd = STDIN_FILENO;
+            this->settings.events = EPOLLIN | EPOLLONESHOT;
+        }
+
+        void* buffer;
+        size_t bufferSize;
     };
 
-//    AsyncStdinOperation AsyncStdin::readData(void* buffer, size_t bufferSize)
-//    {
-//        return AsyncStdinOperation(this->ioContext);
-//    }
-    ssize_t AsyncStdin::readData(void* buffer, size_t bufferSize)
+    AsyncStdin::StdinOperation AsyncStdin::readData(void* buffer, size_t bufferSize)
     {
-        return AsyncStdinOperation(this->ioContext).readFromStream(buffer, bufferSize);
+        return StdinOperation(this->ioContext, buffer, bufferSize);
     }
+
+
 } // namespace tinycoro::io
 #endif // TINYCORO_IOASYNCSTDIN_HPP

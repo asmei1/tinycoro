@@ -47,16 +47,15 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
     size_t bytesRead = 0;
     char readBuffer[READ_SIZE + 1];
 
-    tinycoro::io::AsyncStdinOperation e{context};
+    tinycoro::io::AsyncStdin stdinCoro{context};
     while(true)
     {
         try
         {
-            co_await e;
-            std::cout << "Reading file description " << e.getFD() << ", on thread id = " << std::this_thread::get_id()
-                      << std::endl;
-            bytesRead = e.readFromStream(readBuffer, READ_SIZE);
+            bytesRead = co_await stdinCoro.readData(readBuffer, READ_SIZE);
             readBuffer[bytesRead] = '\0';
+            std::cout << "Reading file description " << 0 << ", on thread id = " << std::this_thread::get_id()
+                      << std::endl;
             std::cout << "DATA: " << readBuffer << std::endl;
 
             if(!strncmp(readBuffer, "stop", 4))
