@@ -5,6 +5,7 @@
 #ifndef TINYCORO_IOASYNCSTDIN_HPP
 #define TINYCORO_IOASYNCSTDIN_HPP
 #include "IOOperation.hpp"
+#include "IOContext.hpp"
 #include <iostream>
 #include <unistd.h>
 namespace tinycoro::io
@@ -54,7 +55,6 @@ namespace tinycoro::io
         void await_suspend(std::coroutine_handle<> awaitingCoro)
         {
             this->settings.data.ptr = awaitingCoro.address();
-            std::cout << "Sus1   " << this->settings.data.ptr <<  std::endl;
 
             this->ioContext.scheduleOperation(*this);
         }

@@ -43,8 +43,7 @@ namespace tinycoro
 
         Scheduler getScheduler();
 
-        [[nodiscard]]
-        ThreadPoolOperation scheduleOnPool()
+        [[nodiscard]] ThreadPoolOperation schedule()
         {
             return {*this};
         }
@@ -64,12 +63,13 @@ namespace tinycoro
         std::queue<ThreadPoolOperation*> operationsQueue;
     };
 
-    struct StaticCoroThreadPool::Scheduler{
-        Scheduler(StaticCoroThreadPool& pool):
-            pool(pool){}
+    struct StaticCoroThreadPool::Scheduler
+    {
+        Scheduler(StaticCoroThreadPool& pool) : pool(pool)
+        {}
 
-        [[nodiscard]]
-        StaticCoroThreadPool::ThreadPoolOperation schedule(){
+        [[nodiscard]] StaticCoroThreadPool::ThreadPoolOperation schedule()
+        {
             return {this->pool};
         }
 

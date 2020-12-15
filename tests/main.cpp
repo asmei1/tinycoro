@@ -8,26 +8,44 @@
 #include <iostream>
 #include <unistd.h>
 
-tinycoro::FireAndForget asyncAutoEventTest(tinycoro::StaticCoroThreadPool& p, tinycoro::io::EpollAsyncAutoResetEvent& e)
+tinycoro::Task<uint64_t> startComputingOnThread(tinycoro::scheduler_trait auto scheduler,
+                                                tinycoro::io::EpollAsyncAutoResetEvent& e)
 {
-    co_await p.scheduleOnPool();
+    co_await e;
+    std::cout << "Prepare to computation, moving to new thread (old thread id = " << std::this_thread::get_id()
+              << ")\n";
+    co_await scheduler.schedule();
 
-    std::cout << "Before co " <<  "\n";
-    co_await e;
-    std::cout << "After co " << "\n";
-    co_await e;
-    std::cout << "Before next co\n";
-    co_await e;
-    std::cout << "CLOOOSING\n";
+    std::cout << "Moved to new thread (thread id = " << std::this_thread::get_id() << "), starting computations...\n";
+    // some computations
+    uint64_t result = 0;
+    for(auto i : tinycoro::range(0, 1000000))
+    {
+        result += i;
+    }
+
+    co_return result;
 }
 
-tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& stopToken, tinycoro::io::EpollAsyncAutoResetEvent& eTask)
+// This function will wait in separate thread for computation result
+tinycoro::FireAndForget waitingForComputationResult(tinycoro::scheduler_trait auto scheduler,
+                                                    tinycoro::io::EpollAsyncAutoResetEvent& e)
+{
+    co_await scheduler.schedule();
+
+    std::cout << "Waiting for computation result...(on thread = " << std::this_thread::get_id() << ")\n";
+    uint64_t computationResult = co_await startComputingOnThread(scheduler, e);
+
+    std::cout << "We got it! Result = " << computationResult << std::endl;
+}
+
+tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& stopToken,
+                                      tinycoro::io::EpollAsyncAutoResetEvent& eTask)
 {
     constexpr int READ_SIZE = 10;
     int eventCount = 0;
     size_t bytesRead = 0;
     char readBuffer[READ_SIZE + 1];
-
 
     tinycoro::io::AsyncStdinOperation e{context};
     while(true)
@@ -35,7 +53,8 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
         try
         {
             co_await e;
-            std::cout << "Reading file description " << 0 << std::endl;
+            std::cout << "Reading file description " << e.getFD() << ", on thread id = " << std::this_thread::get_id()
+                      << std::endl;
             bytesRead = e.readFromStream(readBuffer, READ_SIZE);
             readBuffer[bytesRead] = '\0';
             std::cout << "DATA: " << readBuffer << std::endl;
@@ -46,15 +65,8 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
                 break;
             }
 
-            if(!strncmp(readBuffer, "remove", 6))
+            if(!strncmp(readBuffer, "start", 5))
             {
-                context.removeScheduledOperation(e);
-                break;
-            }
-
-            if(!strncmp(readBuffer, "set", 3))
-            {
-                std::cout << "Set executed\n";
                 eTask.set();
             }
         }
@@ -69,22 +81,37 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context, bool& st
     }
 }
 
-int main()
+tinycoro::FireAndForget processEpollEvents(tinycoro::scheduler_trait auto scheduler, tinycoro::io::IOContext& ioContext,
+                                           bool onThreadPool = false)
 {
-    constexpr int MAX_EVENTS = 4;
-    tinycoro::io::IOContext ioContext{MAX_EVENTS};
-    tinycoro::StaticCoroThreadPool threadPool;
+    if(onThreadPool)
+        co_await scheduler.schedule();
+
+    std::cout << "Started, thread id = " << std::this_thread::get_id() << std::endl;
 
     tinycoro::io::EpollAsyncAutoResetEvent eTask{ioContext};
-    asyncAutoEventTest(threadPool, eTask);
+    waitingForComputationResult(scheduler, eTask);
 
     bool running = true;
     readFromStdin(ioContext, running, eTask);
     while(running)
     {
-        std::cout << "Waiting for events... " << std::endl;
-        ioContext.processAwaitingEvents(10000);
+        ioContext.processAwaitingEvents(-1);
     }
+
+    std::cout << "Closed, thread id = " << std::this_thread::get_id() << std::endl;
+}
+
+int main()
+{
+    std::cout << "Main thread id = " << std::this_thread::get_id() << "\n";
+
+    constexpr int MAX_EVENTS = 4;
+    tinycoro::io::IOContext ioContext{MAX_EVENTS};
+    tinycoro::StaticCoroThreadPool threadPool{4};
+
+    processEpollEvents(threadPool.getScheduler(), ioContext, true);
+
     threadPool.wait();
     return 0;
 }
