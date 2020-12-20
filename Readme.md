@@ -1,14 +1,14 @@
-#tinycoro
-It's a simple library which supports a coroutine usage and implemented a some coroutine types (like Task<T> or Generator<T>, some Linux-specific types and context classes for all of them.<br>
+# tinycoro
+It's a simple library which supports a coroutine usage and implemented a some coroutine types (like Task<T> or Generator<T>, some Linux-specific types and context classes for all of them.  
 This library used a C++20 standard.
 
-##Usage
+## Usage
 #Prerequisites
 You will need:
  - A gcc compiler which supports coroutines (10+)
  - Linux system for tinycoro::io part
 
-##Build and install
+## Build and install
 ```
 mkdir src/build
 cd src/build
@@ -18,16 +18,16 @@ cmake --build
 
 Installation using cmake is not done yet.
 
-##Details
+## Details
 
-###`tinycoro::Task<T>`
-Coroutine which will be not executed until it won't be called with co_await.<br>
+### `tinycoro::Task<T>`
+Coroutine which will be not executed until it won't be called with co_await.  
 Coroutine body which will returns a `tiny::Task<T>` have to contains the `co_await` or `co_return` keyword.
 `co_yield` is forbidden here.
 Until coroutine will be not executed with co_await, it will be suspend in awaiting state.
-It will be resumed later on thread where it will be co_await'ed.<br>
-Any exception will stored and rethrow in resume thread.<br>
-If `tiny::Task<T>` object was destroyed before coroutine function was executed, all memory is frees automatically.<br>
+It will be resumed later on thread where it will be co_await'ed.  
+Any exception will stored and rethrow in resume thread.  
+If `tiny::Task<T>` object was destroyed before coroutine function was executed, all memory is frees automatically.  
 
 ```c++
 // If this function will be co_awaited, it will be resumed with scheduler on specific context (ie thread pool)
@@ -47,10 +47,10 @@ tinycoro::Task<int> someAsyncTask(tinycoro::scheduler_trait auto scheduler)
 };
 ```
 
-###`tinycoro::Generator<T>`
-Coroutine type which supports `co_yield` keyword. Values are produced lazy and synchronously.<br>
-Coroutine body cannot use `co_await` keyword.<br>
-Any exception will be propagate to the user by `begin()` or `operator++()` functions.<br>
+### `tinycoro::Generator<T>`
+Coroutine type which supports `co_yield` keyword. Values are produced lazy and synchronously.  
+Coroutine body cannot use `co_await` keyword.  
+Any exception will be propagate to the user by `begin()` or `operator++()` functions.  
 
 ```c++
 //Example is the one of algorithms from Algorithms.hpp
@@ -74,17 +74,17 @@ for(const auto& it : range(v.begin(), v.end(), 2)
 }
 ```
 
-###`tinycoro::StaticCoroThreadPool`
-StaticCoroThreadPool is a simple static thread pool class, works as context for coroutines.<br>
-It could schedule coroutine on the one of thread or returns a lightweight Scheduler object, which can do the same thing.<br>
+### `tinycoro::StaticCoroThreadPool`
+StaticCoroThreadPool is a simple static thread pool class, works as context for coroutines.  
+It could schedule coroutine on the one of thread or returns a lightweight Scheduler object, which can do the same thing.  
 Both, `tinycoro::StaticCoroThreadPool` and `tinycoro::StaticCoroThreadPool::Scheduler` fits a `tinycoro::schedule_trait` which could be used as template concept. 
-<br>
+  
 
 
-###`tinycoro::FireAndForget`
+### `tinycoro::FireAndForget`
 Has the `co_await` operator deleted, so the returned result cannot be `co_await`ed.
-``Fire and forget``, you are not interested in its result or whether it has managed to do something. <br>
-It will be resumed immediatelly after call.<br>
+``Fire and forget``, you are not interested in its result or whether it has managed to do something.   
+It will be resumed immediatelly after call.  
 Any exception will terminate application.
 
 ```c++
@@ -97,9 +97,9 @@ tinycoro::FireAndForget someAsyncTask()
 ```
 
 
-##Linux part
+## Linux part
 
-###`tinycoro::io::IOContext`
+### `tinycoro::io::IOContext`
 IOContext is the class for scheduling and invoking IO events, based on epoll_event mechanism from Linux.
 Its context class for coroutines from `tinycoro::io`
 All classes which are derived from `tinycoro::io::IOOperation` class needs this context.
@@ -127,11 +127,11 @@ tinycoro::FireAndForget waitUntilEventIsSet(tinycoro::io::EpollAsyncAutoResetEve
 ```
 
 
-###`tinycoro::io::EpollAsyncAutoResetEvent`
+### `tinycoro::io::EpollAsyncAutoResetEvent`
 A simple class with set and auto clear mechanism, that allow to wait one thread
-until an event is signalled by a thread calling a set() function.<br>
-State set is automatically set to "not set" state after wake up thread.<br>
-Any exception will stored and rethrow in resume thread.<br>
+until an event is signalled by a thread calling a set() function.  
+State set is automatically set to "not set" state after wake up thread.  
+Any exception will stored and rethrow in resume thread.  
 
 ```c++
 tinycoro::Task<uint64_t> waitUntilEventIsSet(tinycoro::io::EpollAsyncAutoResetEvent& e)
@@ -150,7 +150,7 @@ tinycoro::Task<uint64_t> waitUntilEventIsSet(tinycoro::io::EpollAsyncAutoResetEv
 
 ```
 
-###`tinycoro::io::AsyncStdin`
+### `tinycoro::io::AsyncStdin`
 AsyncStdin supports reading standard input stream with coroutine.
 ```c++
 tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context)
@@ -178,4 +178,4 @@ tinycoro::FireAndForget readFromStdin(tinycoro::io::IOContext& context)
 
 ----------------------------------------------------------------
 The code is inspired by articles by Lewiss Baker and his [cppcoro](https://github.com/lewissbaker/cppcoro) and code from [luncliff](https://github.com/luncliff/coroutine/).
-<br> Thanks!
+   Thanks!
