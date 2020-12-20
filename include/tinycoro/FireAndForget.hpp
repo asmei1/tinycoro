@@ -25,8 +25,8 @@ namespace tinycoro
         FireAndForget() = default;
 
         FireAndForget(FireAndForget&) = delete;
-        FireAndForget& operator=(FireAndForget&) = delete;
         FireAndForget(FireAndForget&&) = delete;
+        FireAndForget operator=(const FireAndForget&) = delete;
         FireAndForget& operator=(FireAndForget&&) = delete;
 
         // Deleted co_await operator
@@ -61,22 +61,7 @@ namespace tinycoro
         }
     };
 
-    /*
-     * Helper function to execute any coroutine as fire and forget function.
-     * It could receive awaitable object or coroutine function.
-     */
-    template <typename T>
-    FireAndForget fireAndForget(T t)
-    {
-        if constexpr(std::is_invocable_v<T>)
-        {
-            co_await t();
-        }
-        else
-        {
-            co_await std::move(t);
-        }
-    }
+
 } // namespace tinycoro
 
 #endif // TINYCORO_FIREANDFORGET_HPP
