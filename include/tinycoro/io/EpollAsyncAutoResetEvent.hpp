@@ -11,6 +11,12 @@
 
 namespace tinycoro::io
 {
+    /*
+     * A simple class with set and auto clear mechanism, that allow to wait one thread
+     * until an event is signalled by a thread calling a set() function.
+     *
+     * State set is automatically set to "not set" state after wake up thread.
+     */
     class EpollAsyncAutoResetEvent : public IOOperation
     {
     public:

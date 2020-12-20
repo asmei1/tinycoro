@@ -9,6 +9,18 @@
 #include <utility>
 namespace tinycoro
 {
+    /*
+     * Coroutine which will be not executed until it won't be called with co_await.
+     *
+     * Coroutine body which will returns a tiny::Task<T> have to contains the co_await or co_return keyword.
+     * co_yield is forbidden here.
+     *
+     * Until coroutine will be not executed with co_await, it will be suspend in awaiting state.
+     * It will be resumed later on thread where it will be co_await'ed.
+     * Any exception will stored and rethrow in resume thread.
+     *
+     * If tiny::Task<T> object was destroyed before coroutine function was executed, all memory is frees automatically.
+     */
     template <typename T = void>
     class Task
     {

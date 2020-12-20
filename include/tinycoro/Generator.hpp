@@ -9,6 +9,13 @@
 #include <variant>
 namespace tinycoro
 {
+    /*
+     * Coroutine type which supports co_yield keyword. Values are produced lazy and synchronously.
+     *
+     * Coroutine body cannot use co_await keyword.
+     *
+     * Any exception will be propagate to the user by begin() or operator++() functions.
+     */
     template <typename T>
     class Generator
     {
