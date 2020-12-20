@@ -25,8 +25,8 @@ namespace tinycoro
         FireAndForget() = default;
 
         FireAndForget(FireAndForget&) = delete;
-        FireAndForget& operator=(FireAndForget&) = delete;
         FireAndForget(FireAndForget&&) = delete;
+        FireAndForget operator=(const FireAndForget&) = delete;
         FireAndForget& operator=(FireAndForget&&) = delete;
 
         // Deleted co_await operator

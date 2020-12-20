@@ -4,6 +4,9 @@
 
 #ifndef TINYCORO_IOOPERATION_HPP
 #define TINYCORO_IOOPERATION_HPP
+#include <unistd.h>
+#include <sys/epoll.h>
+
 namespace tinycoro::io
 {
     struct IOOperationCancel
@@ -16,6 +19,11 @@ namespace tinycoro::io
     {
     public:
         virtual ~IOOperation() = default;
+        // Non-copyable
+        IOOperation(const IOOperation& t) = delete;
+        IOOperation(IOOperation&& t) = delete;
+        IOOperation& operator=(const IOOperation&) = delete;
+        IOOperation& operator=(IOOperation&& t) = delete;
 
         using CoroHandle = std::coroutine_handle<>;
 

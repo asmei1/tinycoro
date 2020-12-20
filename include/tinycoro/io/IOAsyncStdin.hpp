@@ -6,26 +6,37 @@
 #define TINYCORO_IOASYNCSTDIN_HPP
 #include "IOContext.hpp"
 #include "IOOperation.hpp"
-#include <iostream>
-#include <unistd.h>
 namespace tinycoro::io
 {
+    /*
+     * AsyncStdin supports reading standard input stream with coroutine.
+     * Required IOContext to be resumed when reading is available.
+     */
     class AsyncStdin
     {
         struct StdinOperation;
 
     public:
+        /*
+         * Initialize AsyncStdin object.
+         */
         AsyncStdin(IOContext& context) : ioContext(context)
         {}
 
+        //Non-copyable
         AsyncStdin(AsyncStdin& t) = delete;
         AsyncStdin& operator=(AsyncStdin&) = delete;
 
-        AsyncStdin& operator=(AsyncStdin&& t) = delete;
-        AsyncStdin(AsyncStdin&& t) = delete;
 
         ~AsyncStdin() = default;
 
+        /*
+         * Reads data from stdin.
+         * Returns awaitable object.
+         *
+         * @param buffer - pointer to allocated buffer, where data will be stored.
+         * @param bufferSize - the maximum size of the buffer where stdin data will be written.
+         */
         StdinOperation readData(void* buffer, size_t bufferSize);
 
     private:
@@ -35,12 +46,6 @@ namespace tinycoro::io
     struct AsyncStdin::StdinOperation : public IOOperation
     {
     public:
-        StdinOperation(StdinOperation& t) = delete;
-        StdinOperation& operator=(StdinOperation&) = delete;
-
-        StdinOperation& operator=(StdinOperation&& t) = delete;
-        StdinOperation(StdinOperation&& t) = delete;
-
         bool await_ready() noexcept
         {
             return false;
@@ -53,6 +58,11 @@ namespace tinycoro::io
             this->ioContext.scheduleOperation(*this);
         }
 
+        /*
+         * Returns number of bytes which was read.
+         *
+         * @throw IOOperationCancel exception if operation was canceled.
+         */
         auto await_resume() noexcept
         {
             this->throwExceptionIfCanceled();

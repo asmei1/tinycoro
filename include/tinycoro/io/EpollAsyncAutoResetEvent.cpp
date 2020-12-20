@@ -39,21 +39,14 @@ namespace tinycoro::io
         uint64_t temp;
         if(-1 == read(this->fd, &temp, sizeof(temp)))
             throw std::system_error{errno, std::system_category(), strerror(errno)};
-
-        this->signaled = false;
     }
 
     void EpollAsyncAutoResetEvent::set()
     {
-        if(this->signaled)
-            return; // there race condition (event is signaled, so this check is risky!
-
         // Don't care about value passed to write - it's called only for invoke epoll and to put this event to active fd
         // list
         if(-1 == write(this->fd, &this->fd, sizeof(this->fd)))
             throw std::system_error{errno, std::system_category(), strerror(errno)};
-
-        this->signaled = true;
     }
 
 } // namespace tinycoro::io

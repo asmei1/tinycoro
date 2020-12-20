@@ -1,1 +1,1 @@
-add_library(io IOContext.hpp IOContext.cpp EpollAsyncAutoResetEvent.cpp EpollAsyncAutoResetEvent.hpp Socket.cpp Socket.hpp IOOperation.hpp IOAsyncStdin.hpp)
+add_library(io IOContext.hpp IOContext.cpp EpollAsyncAutoResetEvent.cpp EpollAsyncAutoResetEvent.hpp IOOperation.hpp IOAsyncStdin.hpp)

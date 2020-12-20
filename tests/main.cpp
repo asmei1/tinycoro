@@ -116,6 +116,8 @@ int main()
 
     constexpr int MAX_EVENTS = 4;
     tinycoro::io::IOContext ioContext{MAX_EVENTS};
+    tinycoro::io::EpollAsyncAutoResetEvent s{ioContext};
+
     tinycoro::StaticCoroThreadPool threadPool{4};
 
     processEpollEvents(threadPool.getScheduler(), ioContext);

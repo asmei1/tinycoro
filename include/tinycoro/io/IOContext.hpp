@@ -29,8 +29,10 @@ namespace tinycoro::io
         ~IOContext();
 
         // Non-copyable
-        IOContext(IOContext&) = delete;
-        IOContext& operator=(IOContext&) = delete;
+        IOContext(const IOContext&) = delete;
+        IOContext(IOContext&&) = delete;
+        IOContext& operator=(const IOContext&) = delete;
+        IOContext& operator=(IOContext&&) = delete;
 
         /*
          * Wait for awaiting IO events and resume them.
@@ -98,6 +100,5 @@ namespace tinycoro::io
         const uint32_t eventPoolCount;
         int epollFD = -1;
     };
-
 };     // namespace tinycoro::io
 #endif // TINYCORO_IOCONTEXT_HPP
