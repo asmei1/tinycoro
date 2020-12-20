@@ -2,8 +2,8 @@
 // Created by Asmei on 11/25/2020.
 //
 
-#ifndef TINYCORO_ALGORITMS_HPP
-#define TINYCORO_ALGORITMS_HPP
+#ifndef TINYCORO_ALGORITHMS_HPP
+#define TINYCORO_ALGORITHMS_HPP
 #include "FireAndForget.hpp"
 #include "Generator.hpp"
 namespace tinycoro
@@ -64,4 +64,4 @@ namespace tinycoro
         }
     }
 }
-#endif // TINYCORO_ALGORITMS_HPP
+#endif // TINYCORO_ALGORITHMS_HPP
