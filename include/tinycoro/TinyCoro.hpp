@@ -5,7 +5,7 @@
 #ifndef TINYCORO_TINYCORO_HPP
 #define TINYCORO_TINYCORO_HPP
 
-#include "Algoritms.hpp"
+#include "Algorithms.hpp"
 #include "FireAndForget.hpp"
 #include "Generator.hpp"
 #include "StaticCoroThreadPool.hpp"
