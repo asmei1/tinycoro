@@ -4,9 +4,13 @@
 
 #ifndef TINYCORO_ALGORITMS_HPP
 #define TINYCORO_ALGORITMS_HPP
+#include "FireAndForget.hpp"
 #include "Generator.hpp"
 namespace tinycoro
 {
+    /*
+     * Create endless stream, yielding objects from begin (inclusive).
+     */
     template <std::incrementable T>
     tinycoro::Generator<T> range(T begin)
     {
@@ -16,6 +20,9 @@ namespace tinycoro
         }
     }
 
+    /*
+     * Yield objects from begin (inclusive) to end (enxclusive) with incremental.
+     */
     template <std::incrementable T>
     tinycoro::Generator<T> range(T begin, T end)
     {
@@ -25,6 +32,9 @@ namespace tinycoro
         }
     }
 
+    /*
+     * Yield objects from begin (inclusive) to end (enxclusive) with given step.
+     */
     template <typename T, typename Step>
     requires requires (T x, Step s) { x + s; }
     tinycoro::Generator<T> range(T begin, T end, Step step)
@@ -36,5 +46,22 @@ namespace tinycoro
         }
     }
 
+
+    /*
+     * Helper function to execute any coroutine as fire and forget function.
+     * It could receive any awaitable object or coroutine function.
+     */
+    template <typename T>
+    FireAndForget fireAndForget(T t)
+    {
+        if constexpr(std::is_invocable_v<T>)
+        {
+            co_await t();
+        }
+        else
+        {
+            co_await std::move(t);
+        }
+    }
 }
 #endif // TINYCORO_ALGORITMS_HPP

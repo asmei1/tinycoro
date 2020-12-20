@@ -35,6 +35,8 @@ namespace tinycoro
         }
     );
 
+    //Concept for scheduler.
+    //Each scheduler must have a schedule method which returns a awaiter
     template <typename S>
     concept scheduler_trait = requires(S s)
     {
