@@ -85,6 +85,7 @@ Both, `tinycoro::StaticCoroThreadPool` and `tinycoro::StaticCoroThreadPool::Sche
 Has the `co_await` operator deleted, so the returned result cannot be `co_await`ed.
 ``Fire and forget``, you are not interested in its result or whether it has managed to do something.   
 It will be resumed immediatelly after call.  
+Cannot create object explicit - the only possibility to use this type is as coroutine return type.   
 Any exception will terminate application.
 
 ```c++
