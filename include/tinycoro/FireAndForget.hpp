@@ -19,10 +19,10 @@ namespace tinycoro
      */
     class FireAndForget
     {
-    public:
-        struct FireAndForgetPromise;
-
         FireAndForget() = default;
+    public:
+        using promise_type = FireAndForget;
+
 
         FireAndForget(FireAndForget&) = delete;
         FireAndForget(FireAndForget&&) = delete;
@@ -32,11 +32,7 @@ namespace tinycoro
         // Deleted co_await operator
         auto operator co_await() = delete;
 
-        using promise_type = FireAndForgetPromise;
-    };
 
-    struct FireAndForget::FireAndForgetPromise
-    {
         FireAndForget get_return_object() const noexcept
         {
             return {};
