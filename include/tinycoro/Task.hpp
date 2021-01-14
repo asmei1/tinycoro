@@ -46,7 +46,7 @@ namespace tinycoro
         using promise_type = TaskPromise;
         using promise_coro_handle = std::coroutine_handle<promise_type>;
 
-        auto operator co_await() const &
+        auto operator co_await() const&
         {
             struct awaiter
             {
@@ -64,9 +64,16 @@ namespace tinycoro
                     return this->coro;
                 }
 
-                auto await_resume()
+                decltype(auto) await_resume()
                 {
-                    return this->coro.promise().result();
+                    if constexpr(!std::is_void_v<decltype(this->coro.promise().result())>)
+                    {
+                        return std::move(this->coro.promise().result());
+                    }
+                    else
+                    {
+                        this->coro.promise().result();
+                    }
                 }
 
             private:
@@ -76,7 +83,7 @@ namespace tinycoro
             return awaiter{this->coroHandle};
         }
 
-        auto operator co_await() const &&
+        auto operator co_await() const&&
         {
             struct awaiter
             {
@@ -94,9 +101,16 @@ namespace tinycoro
                     return this->coro;
                 }
 
-                auto await_resume()
+                decltype(auto) await_resume()
                 {
-                    return std::move(this->coro.promise().result());
+                    if constexpr(!std::is_void_v<decltype(this->coro.promise().result())>)
+                    {
+                        return std::move(this->coro.promise().result());
+                    }
+                    else
+                    {
+                        this->coro.promise().result();
+                    }
                 }
 
             private:
@@ -117,7 +131,6 @@ namespace tinycoro
         protected:
             TaskPromiseBase() = default;
             virtual ~TaskPromiseBase() = default;
-
 
             friend class Task;
             std::coroutine_handle<> continuation;
